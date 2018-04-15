@@ -23,6 +23,7 @@ type Downloader struct {
 	baseURL   *url.URL
 	urlsWG    sync.WaitGroup
 	wg        sync.WaitGroup
+	stateFile string
 }
 
 func NewDownloader() *Downloader {
@@ -32,13 +33,14 @@ func NewDownloader() *Downloader {
 	}
 
 	return &Downloader{
-		urls:    make(map[string]bool, 100),
-		files:   make(map[string]bool, 100),
-		urlsCh:  make(chan *url.URL, 100),
-		filesCh: make(chan *url.URL, 100),
-		stopCh:  make(chan interface{}),
-		client:  http.DefaultClient,
-		limiter: limiter,
+		urls:      make(map[string]bool, 100),
+		files:     make(map[string]bool, 100),
+		urlsCh:    make(chan *url.URL, 100),
+		filesCh:   make(chan *url.URL, 100),
+		stopCh:    make(chan interface{}),
+		client:    http.DefaultClient,
+		limiter:   limiter,
+		stateFile: "/tmp/state.yaml",
 	}
 }
 
@@ -49,6 +51,11 @@ func (d *Downloader) Run(input string) error {
 		return errors.New("invalid input URL")
 	}
 
+	err = d.loadState()
+	if err != nil {
+		return err
+	}
+
 	d.baseURL = u
 	d.addURL(u)
 
@@ -56,12 +63,14 @@ func (d *Downloader) Run(input string) error {
 	go d.processNewURLs()
 
 	d.wg.Wait()
+
+	d.saveState()
+
 	return nil
 }
 
 func (d *Downloader) Stop() {
 	close(d.stopCh)
-	d.wg.Wait()
 }
 
 var textExtensions = []string{

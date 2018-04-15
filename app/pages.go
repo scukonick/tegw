@@ -30,6 +30,7 @@ func (d *Downloader) processNewURLs() {
 	// processNewURL goroutines will read all urls from channel to map
 	// and exit, so we don't need to select from stopCh here.
 	for {
+		time.Sleep(200 * time.Millisecond)
 		select {
 		case u := <-d.urlsCh:
 			go d.processNewURL(u)
