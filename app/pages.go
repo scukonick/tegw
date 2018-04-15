@@ -27,7 +27,6 @@ func (d *Downloader) processNewURLs() {
 	}()
 
 	for {
-		time.Sleep(2 * time.Second)
 		select {
 		case <-d.stopCh:
 			// exit
@@ -80,7 +79,7 @@ func (d *Downloader) processNewURL(u *url.URL) {
 		log.Printf("ERR: failed to download url %s: %v", input, err)
 		return
 	}
-	defer resp.Body.Close()
+	defer closeC(resp.Body)
 
 	if resp.StatusCode != 200 {
 		log.Printf("ERR: failed to download url %s: http %d", input, resp.StatusCode)
@@ -103,7 +102,6 @@ func (d *Downloader) processNewURL(u *url.URL) {
 	// using resp.RequestURL to handle relative URLs after redirects
 	urls = d.filterURLs(resp.Request.URL, urls)
 	for _, v := range urls {
-		log.Printf("URL: %v -> %v", u.String(), v.String())
 		d.addURL(v)
 	}
 
