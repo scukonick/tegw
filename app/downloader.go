@@ -59,6 +59,11 @@ func (d *Downloader) Run(input string) error {
 	return nil
 }
 
+func (d *Downloader) Stop() {
+	close(d.stopCh)
+	d.wg.Wait()
+}
+
 var textExtensions = []string{
 	".txt",
 	".md",
