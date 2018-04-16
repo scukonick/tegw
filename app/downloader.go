@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 	"sync"
 )
@@ -28,7 +29,7 @@ type Downloader struct {
 	outDir    string
 }
 
-func NewDownloader() *Downloader {
+func NewDownloader(outDir, stateDir string) *Downloader {
 	limiter := make(chan interface{}, 10)
 	for i := 0; i < 10; i++ {
 		limiter <- true
@@ -42,7 +43,8 @@ func NewDownloader() *Downloader {
 		stopCh:    make(chan interface{}),
 		client:    http.DefaultClient,
 		limiter:   limiter,
-		stateFile: "/tmp/state.yaml",
+		outDir:    outDir,
+		stateFile: path.Join(stateDir, "state.yaml"),
 	}
 }
 

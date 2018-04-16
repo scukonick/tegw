@@ -33,7 +33,6 @@ func (d *Downloader) processNewURLs() {
 	// and exit, so we don't need to select from stopCh here.
 pagesLoop:
 	for {
-		time.Sleep(200 * time.Millisecond)
 		select {
 		case u := <-d.urlsCh:
 			go d.processNewURL(u)

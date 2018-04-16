@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"os"
 	"os/signal"
@@ -8,8 +9,19 @@ import (
 	"github.com/scukonick/tegw/app"
 )
 
+var baseURL string
+var outDir string
+var stateDir string
+
+func init() {
+	flag.StringVar(&baseURL, "baseURL", "http://google.com", "url to start downloads")
+	flag.StringVar(&outDir, "outDir", ".", "where to store downloaded docs")
+	flag.StringVar(&stateDir, "stateDir", ".", "where to store state")
+	flag.Parse()
+}
+
 func main() {
-	d := app.NewDownloader()
+	d := app.NewDownloader(outDir, stateDir)
 
 	go func() {
 		c := make(chan os.Signal, 1)
@@ -20,7 +32,7 @@ func main() {
 		d.Stop()
 	}()
 
-	err := d.Run("http://127.0.0.1:8000")
+	err := d.Run(baseURL)
 	if err != nil {
 		log.Fatalf("run failed: %+v", err)
 	}
