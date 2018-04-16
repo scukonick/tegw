@@ -6,8 +6,12 @@ import (
 	"net/url"
 	"os"
 
+	"errors"
+
 	"gopkg.in/yaml.v2"
 )
+
+var errNoState = errors.New("no state fie")
 
 type state struct {
 	URLs  map[string]bool
@@ -64,7 +68,7 @@ func (d *Downloader) loadState() error {
 	if err != nil {
 		if os.IsNotExist(err) {
 			// not loading, just running as is
-			return nil
+			return errNoState
 		}
 		return err
 	}
@@ -97,7 +101,7 @@ func (d *Downloader) loadState() error {
 			continue
 		}
 
-		go d.addURL(u)
+		d.restoredURLs = append(d.restoredURLs, u)
 	}
 
 	for link, processed := range s.Files {
@@ -112,7 +116,7 @@ func (d *Downloader) loadState() error {
 			continue
 		}
 
-		go d.addFile(u)
+		d.restoredFiles = append(d.restoredFiles, u)
 	}
 
 	return nil

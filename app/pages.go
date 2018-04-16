@@ -9,57 +9,51 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"golang.org/x/net/context"
 )
 
-// processNewURLs reads from urlsCh,
-// downloads them, parses and sends found urls
-// and files to urlsCh and filesCh
-func (d *Downloader) processNewURLs() {
-	defer d.wg.Done()
+func (d *Downloader) processNewURLsV2(ctx context.Context) chan *url.URL {
+	c := make(chan interface{})
 
-	noMoreURLsCH := make(chan interface{})
+	filesCh := make(chan *url.URL)
 
-	go func() {
-		// close noMoreUrlsCh if there are no
-		// goroutines parsing pages
-		log.Printf("Waiting d.urlsWG.Wait()")
-		d.urlsWG.Wait()
-		log.Printf("Done waiting d.urlsWG.Wait()")
-		close(noMoreURLsCH)
-	}()
-
-	// when stopCh is closed
-	// processNewURL goroutines will read all urls from channel to map
-	// and exit, so we don't need to select from stopCh here.
-pagesLoop:
-	for {
-		select {
-		case u := <-d.urlsCh:
-			go d.processNewURL(u)
-		case <-noMoreURLsCH:
-			log.Printf("received no more urls")
-			break pagesLoop
-		}
+	for _, u := range d.restoredFiles {
+		d.urlsWG.Add(1)
+		go func() {
+			d.addFile(ctx, u, filesCh)
+			d.urlsWG.Done()
+		}()
 	}
 
-	// all urls are processed
-	d.filesWG.Wait()
-	// so we wait until all files are processed
-	// and close files channel
-	close(d.filesCh)
+	go func() {
+		for {
+			select {
+			case <-d.ctx.Done():
+				return
+			case u := <-d.urlsCh:
+				go func() {
+					d.processNewURLV2(ctx, u, filesCh)
+					d.urlsWG.Done()
+				}()
+			case <-c:
+				return
+			}
+		}
+	}()
+
+	go func() {
+		d.urlsWG.Wait()
+		close(c)
+		close(filesCh)
+	}()
+
+	return filesCh
 }
 
 // addURL should be used instead direct write to channel
 // in order to ube able to manage processNewURL goroutines
-func (d *Downloader) addURL(u *url.URL) {
-	d.urlsWG.Add(1)
-	d.urlsCh <- u
-}
-
-func (d *Downloader) processNewURL(u *url.URL) {
+func (d *Downloader) addURL(ctx context.Context, u *url.URL) {
 	input := u.String()
-
-	defer d.urlsWG.Done()
 
 	d.urlsLock.Lock()
 
@@ -72,23 +66,30 @@ func (d *Downloader) processNewURL(u *url.URL) {
 	d.urls[input] = false
 	d.urlsLock.Unlock()
 
-	select {
-	case <-d.stopCh:
-		return
-	default:
-		// Because order of select is not guaranteed
-		// checking only stop channel here.
-	}
+	d.urlsWG.Add(1)
+
+	go func() {
+		select {
+		case d.urlsCh <- u:
+		case <-ctx.Done():
+			d.urlsWG.Done()
+		}
+	}()
+}
+
+func (d *Downloader) processNewURLV2(ctx context.Context, u *url.URL, filesCh chan *url.URL) {
+	input := u.String()
 
 	select {
-	case <-d.stopCh:
+	case <-ctx.Done():
 		return
 	case <-d.limiter:
 	}
 
 	log.Printf("GET %s", input)
 	now := time.Now()
-	resp, err := d.client.Get(input)
+	req := d.buildRequest(ctx, input)
+	resp, err := d.client.Do(req)
 	log.Printf("Done %s, took: %v", input, time.Since(now))
 
 	d.limiter <- true
@@ -119,13 +120,12 @@ func (d *Downloader) processNewURL(u *url.URL) {
 	// using resp.RequestURL to handle relative URLs after redirects
 	urls = d.filterURLs(resp.Request.URL, urls)
 	for _, v := range urls {
-		d.addURL(v)
+		d.addURL(ctx, v)
 	}
 
 	for _, v := range files {
 		// not checking files url domain, only replace relative urls
-		log.Printf("Adding file: %v", v.Path)
-		go d.addFile(resp.Request.URL.ResolveReference(v))
+		d.addFile(ctx, resp.Request.URL.ResolveReference(v), filesCh)
 	}
 
 	d.urlsLock.Lock()

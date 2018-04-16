@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"io"
@@ -8,33 +9,28 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"sync"
 	"time"
 )
 
 // processNewFiles reads from filesCh
 // and downloads them
-func (d *Downloader) processNewFiles() {
-	defer d.wg.Done()
+func (d *Downloader) processNewFilesV2(ctx context.Context, filesCh chan *url.URL) {
+	wg := &sync.WaitGroup{}
 
-	// when stopCh is closed
-	// processNewFile goroutines will read all urls from channel to map
-	// and exit, so we don't need to select from stopCh here.
-	for u := range d.filesCh {
-		go d.processNewFile(u)
+	for u := range filesCh {
+		wg.Add(1)
+		go func() {
+			d.processNewFile(ctx, u)
+			wg.Done()
+		}()
 	}
+
+	wg.Wait()
 }
 
-// addURL should be used instead direct write to channel
-// in order to ube able to manage processNewURL goroutines
-func (d *Downloader) addFile(u *url.URL) {
-	d.filesWG.Add(1)
-	d.filesCh <- u
-}
-
-func (d *Downloader) processNewFile(u *url.URL) {
+func (d *Downloader) addFile(ctx context.Context, u *url.URL, filesCh chan *url.URL) {
 	input := u.String()
-
-	defer d.filesWG.Done()
 
 	d.filesLock.Lock()
 
@@ -48,22 +44,24 @@ func (d *Downloader) processNewFile(u *url.URL) {
 	d.filesLock.Unlock()
 
 	select {
-	case <-d.stopCh:
-		return
-	default:
-		// Because order of select is not guaranteed
-		// checking only stop channel here.
+	case filesCh <- u:
+	case <-ctx.Done():
 	}
+}
+
+func (d *Downloader) processNewFile(ctx context.Context, u *url.URL) {
+	input := u.String()
 
 	select {
-	case <-d.stopCh:
+	case <-ctx.Done():
 		return
 	case <-d.limiter:
 	}
 
 	log.Printf("GET %s", input)
 	now := time.Now()
-	resp, err := d.client.Get(input)
+	req := d.buildRequest(ctx, input)
+	resp, err := d.client.Do(req)
 	log.Printf("Done %s, took: %v", input, time.Since(now))
 
 	d.limiter <- true
@@ -94,7 +92,7 @@ func (d *Downloader) processNewFile(u *url.URL) {
 downloadLoop:
 	for {
 		select {
-		case <-d.stopCh:
+		case <-ctx.Done():
 			closeC(f)
 			cleanTmp(tmpPath)
 			return
