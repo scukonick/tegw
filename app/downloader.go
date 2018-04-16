@@ -35,9 +35,9 @@ type Downloader struct {
 	timeout       time.Duration
 }
 
-func NewDownloader(outDir, stateDir string) *Downloader {
+func NewDownloader(outDir, stateDir string, threads, timeout int) *Downloader {
 	limiter := make(chan interface{}, 10)
-	for i := 0; i < 10; i++ {
+	for i := 0; i < threads; i++ {
 		limiter <- true
 	}
 
@@ -55,7 +55,7 @@ func NewDownloader(outDir, stateDir string) *Downloader {
 		stateFile:     path.Join(stateDir, "state.yaml"),
 		ctx:           ctx,
 		cancel:        cancel,
-		timeout:       10 * time.Second,
+		timeout:       time.Duration(timeout) * time.Second,
 	}
 }
 

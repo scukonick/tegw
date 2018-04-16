@@ -1,7 +1,6 @@
 ## how to run ##
 ```
-go run main.go -baseURL http://127.0.0.1:8000/ -outDir /tmp -stateDir /tmp
-```
+go run main.go -baseURL http://127.0.0.1:8000/ -outDir /tmp -stateDir /tmp -threads 3 -timeout 15```
 
 #### assumptions ####
 * assuming urls are relatively small so we can store them in memory
