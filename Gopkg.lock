@@ -8,40 +8,10 @@
   version = "v1.4.0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/alecthomas/template"
-  packages = [".","parse"]
-  revision = "a0175ee3bccc567396460bf5acd36800cb10c49c"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/alecthomas/units"
-  packages = ["."]
-  revision = "2efee857e7cfd4f3d0138cc3cbb1b4966962b93a"
-
-[[projects]]
   name = "github.com/andybalholm/cascadia"
   packages = ["."]
   revision = "901648c87902174f774fac311d7f176f8647bdaa"
   version = "v1.0.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/prometheus/common"
-  packages = ["log"]
-  revision = "d0f7cd64bda49e08b22ae8a730aa57aa0db125d6"
-
-[[projects]]
-  name = "github.com/sirupsen/logrus"
-  packages = ["."]
-  revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
-  version = "v1.0.5"
-
-[[projects]]
-  branch = "master"
-  name = "golang.org/x/crypto"
-  packages = ["ssh/terminal"]
-  revision = "d6449816ce06963d9d136eee5a56fca5b0616e7e"
 
 [[projects]]
   branch = "master"
@@ -50,20 +20,14 @@
   revision = "61147c48b25b599e5b561d2e9c4f3e1ef489ca41"
 
 [[projects]]
-  branch = "master"
-  name = "golang.org/x/sys"
-  packages = ["unix","windows","windows/registry","windows/svc/eventlog"]
-  revision = "2281fa97ef7b0c26324634d5a22f04babdac8713"
-
-[[projects]]
-  name = "gopkg.in/alecthomas/kingpin.v2"
+  name = "gopkg.in/yaml.v2"
   packages = ["."]
-  revision = "947dcec5ba9c011838740e680966fd7087a71d0d"
-  version = "v2.2.6"
+  revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
+  version = "v2.2.1"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fe6b5aa225387ea8336d59c2b1e25d7470680ad797a9d33a0c72742c7ea42292"
+  inputs-digest = "762878ef855c47f0edb8066b7e7b2ee7b872c62957a284f57b983ea3db82b392"
   solver-name = "gps-cdcl"
   solver-version = 1
