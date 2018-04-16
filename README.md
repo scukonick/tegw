@@ -1,8 +1,5 @@
 
 #### assumptions ####
-* urls are fast to download, so:
-    * we wait for finish of urls' download on Ctrl-C
-    * we set small timeout on urls downloading
 * assuming urls are relatively small so we can store them in memory
 * if input url = "http://google.com/one" then
 "http://google.com/onetwothree" should not be processed    
