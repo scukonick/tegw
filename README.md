@@ -1,6 +1,6 @@
 ## how to run ##
 ```
-go run main.go -baseURL http://127.0.0.1:8000/
+go run main.go -baseURL http://127.0.0.1:8000/ -outDir /tmp -stateDir /tmp
 ```
 
 #### assumptions ####
