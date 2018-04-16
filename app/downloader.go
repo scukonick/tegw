@@ -22,8 +22,10 @@ type Downloader struct {
 	limiter   chan interface{} // limits number of simultaneous downloads
 	baseURL   *url.URL
 	urlsWG    sync.WaitGroup
+	filesWG   sync.WaitGroup
 	wg        sync.WaitGroup
 	stateFile string
+	outDir    string
 }
 
 func NewDownloader() *Downloader {
@@ -61,6 +63,8 @@ func (d *Downloader) Run(input string) error {
 
 	d.wg.Add(1)
 	go d.processNewURLs()
+	d.wg.Add(1)
+	go d.processNewFiles()
 
 	d.wg.Wait()
 

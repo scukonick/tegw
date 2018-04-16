@@ -3,9 +3,8 @@ package app
 import (
 	"io/ioutil"
 	"log"
-	"os"
-
 	"net/url"
+	"os"
 
 	"gopkg.in/yaml.v2"
 )
@@ -29,8 +28,8 @@ func (d *Downloader) saveState() {
 	}
 
 	d.urlsLock.RLock()
-	for url, downloaded := range d.urls {
-		s.URLs[url] = downloaded
+	for link, downloaded := range d.urls {
+		s.URLs[link] = downloaded
 	}
 	d.urlsLock.RUnlock()
 
@@ -101,7 +100,20 @@ func (d *Downloader) loadState() error {
 		go d.addURL(u)
 	}
 
-	d.files = s.Files
+	for link, processed := range s.Files {
+		if processed {
+			d.files[link] = processed
+			continue
+		}
+
+		u, err := url.Parse(link)
+		if err != nil {
+			log.Printf("WARN: failed to parse stored file")
+			continue
+		}
+
+		go d.addFile(u)
+	}
 
 	return nil
 }

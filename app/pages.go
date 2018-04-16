@@ -22,23 +22,32 @@ func (d *Downloader) processNewURLs() {
 	go func() {
 		// close noMoreUrlsCh if there are no
 		// goroutines parsing pages
+		log.Printf("Waiting d.urlsWG.Wait()")
 		d.urlsWG.Wait()
+		log.Printf("Done waiting d.urlsWG.Wait()")
 		close(noMoreURLsCH)
 	}()
 
 	// when stopCh is closed
 	// processNewURL goroutines will read all urls from channel to map
 	// and exit, so we don't need to select from stopCh here.
+pagesLoop:
 	for {
 		time.Sleep(200 * time.Millisecond)
 		select {
 		case u := <-d.urlsCh:
 			go d.processNewURL(u)
 		case <-noMoreURLsCH:
-			return
+			log.Printf("received no more urls")
+			break pagesLoop
 		}
 	}
 
+	// all urls are processed
+	d.filesWG.Wait()
+	// so we wait until all files are processed
+	// and close files channel
+	close(d.filesCh)
 }
 
 // addURL should be used instead direct write to channel
@@ -116,7 +125,8 @@ func (d *Downloader) processNewURL(u *url.URL) {
 
 	for _, v := range files {
 		// not checking files url domain, only replace relative urls
-		d.filesCh <- u.ResolveReference(v)
+		log.Printf("Adding file: %v", v.Path)
+		go d.addFile(resp.Request.URL.ResolveReference(v))
 	}
 
 	d.urlsLock.Lock()
